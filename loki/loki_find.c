@@ -13,7 +13,7 @@
 
 int loki_find(const char* aboot_image)
 {
-	int aboot_fd;
+	int aboot_fd, i;
 	struct stat st;
 	void *aboot, *ptr;
 	unsigned long aboot_base, check_sigs, boot_mmc;
@@ -36,35 +36,19 @@ int loki_find(const char* aboot_image)
 	}
 
 	check_sigs = 0;
+	aboot_base = *(unsigned int *)(aboot + 12) - 0x28;
 
 	/* Do a pass to find signature checking function */
 	for (ptr = aboot; ptr < aboot + st.st_size - 0x1000; ptr++) {
-		if (!memcmp(ptr, PATTERN1, 8) ||
-			!memcmp(ptr, PATTERN2, 8) ||
-			!memcmp(ptr, PATTERN3, 8)) {
-
-			aboot_base = ABOOT_BASE_SAMSUNG;
-			check_sigs = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
-			break;
+		for (i = 0; i < sizeof(opcodes) / sizeof(opcodes[0]); i++) {
+			if (!memcmp(ptr, opcodes[i], strlen(opcodes[i]))) {
+				check_sigs = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
+				break;
+			}
 		}
 
-		if (!memcmp(ptr, PATTERN4, 8)) {
+		if (!memcmp(ptr, PATTERN, 8)) {
 
-			aboot_base = ABOOT_BASE_LG;
-			check_sigs = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
-			break;
-		}
-
-		if (!memcmp(ptr, PATTERN5, 8)) {
-
-			aboot_base = ABOOT_BASE_G2;
-			check_sigs = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
-			break;
-		}
-
-		if (!memcmp(ptr, PATTERN6, 8)) {
-
-			aboot_base = ABOOT_BASE_LG;
 			check_sigs = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
 
 			/* Don't break, because the other LG patterns override this one */

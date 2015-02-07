@@ -70,11 +70,27 @@ struct target targets[] = {
 		.lg = 0,
 	},
 	{
+		.vendor = "T-Mobile",
+		.device = "LG Optimus F3Q",
+		.build = "D52010c",
+		.check_sigs = 0x88f1079c,
+		.hdr = 0x88f64508,
+		.lg = 1,
+	},
+	{
 		.vendor = "DoCoMo",
 		.device = "LG Optimus G",
 		.build = "L01E20b",
 		.check_sigs = 0x88F10E48,
 		.hdr = 0x88F54418,
+		.lg = 1,
+	},
+	{
+		.vendor = "DoCoMo",
+		.device = "LG Optimus G Pro",
+		.build = "L04E10f",
+		.check_sigs = 0x88f1102c,
+		.hdr = 0x88f54418,
 		.lg = 1,
 	},
 	{
@@ -310,6 +326,14 @@ struct target targets[] = {
 		.lg = 1,
 	},
 	{
+		.vendor = "Verizon",
+		.device = "LG G Pad 8.3",
+		.build = "VK81010c",
+		.check_sigs = 0x88f11080,
+		.hdr = 0x88fd81b8,
+		.lg = 1,
+	},
+	{
 		.vendor = "International",
 		.device = "LG Optimus L9 II",
 		.build = "D60510a",
@@ -342,6 +366,14 @@ struct target targets[] = {
 		.lg = 1,
 	},
 	{
+		.vendor = "KDDI",
+		.device = "LG",
+		.build = "LGL21",
+		.check_sigs = 0x88f10218,
+		.hdr = 0x88f50198,
+		.lg = 1,
+	},
+	{
 		.vendor = "KT",
 		.device = "LG Optimus GK",
 		.build = "F220K",
@@ -355,6 +387,54 @@ struct target targets[] = {
 		.build = "F300L",
 		.check_sigs = 0xf813170,
 		.hdr = 0xf8d2440,
+		.lg = 1,
+	},
+	{
+		.vendor = "Sprint",
+		.device = "LG Viper",
+		.build = "LS840ZVK",
+		.check_sigs = 0x4010fe18,
+		.hdr = 0x40194198,
+		.lg = 1,
+	},
+	{
+		.vendor = "International",
+		.device = "LG G Flex",
+		.build = "D95510a",
+		.check_sigs = 0xf812490,
+		.hdr = 0xf8c2440,
+		.lg = 1,
+	},
+	{
+		.vendor = "Softbank",
+		.device = "DIGNO R 202K",
+		.build = "101.0.2c10",
+		.check_sigs = 0x88f00414,
+		.hdr = 0x88f581a4,
+		.lg = 1,
+	},
+	{
+		.vendor = "Disney Mobile on SoftBank",
+		.device = "DM015K",
+		.build = "100.1.1600",
+		.check_sigs = 0x88f00414,
+		.hdr = 0x88f581a4,
+		.lg = 1,
+	},
+	{
+		.vendor = "Softbank",
+		.device = "HONEY BEE 201K",
+		.build = "117.1.1c00",
+		.check_sigs = 0x88f00378,
+		.hdr = 0x88f581a4,
+		.lg = 1,
+	},
+	{
+		.vendor = "Sprint",
+		.device = "LG Mach",
+		.build = "LS860ZV7",
+		.check_sigs = 0x88f102b4,
+		.hdr = 0x88f6c194,
 		.lg = 1,
 	},
 };
@@ -472,29 +552,14 @@ int loki_patch(const char* partition_label, const char* aboot_image, const char*
 	}
 
 	target = 0;
+	aboot_base = *(unsigned int *)(aboot + 12) - 0x28;
 
 	for (ptr = aboot; ptr < aboot + st.st_size - 0x1000; ptr++) {
-		if (!memcmp(ptr, PATTERN1, 8) ||
-			!memcmp(ptr, PATTERN2, 8) ||
-			!memcmp(ptr, PATTERN3, 8)) {
-
-			aboot_base = ABOOT_BASE_SAMSUNG;
-			target = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
-			break;
-		}
-
-		if (!memcmp(ptr, PATTERN4, 8)) {
-
-			aboot_base = ABOOT_BASE_LG;
-			target = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
-			break;
-		}
-
-		if (!memcmp(ptr, PATTERN5, 8)) {
-
-			aboot_base = ABOOT_BASE_G2;
-			target = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
-			break;
+		for (i = 0; i < sizeof(opcodes) / sizeof(opcodes[0]); i++) {
+			if (!memcmp(ptr, opcodes[i], strlen(opcodes[i]))) {
+				target = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
+				break;
+			}
 		}
 	}
 
@@ -504,9 +569,8 @@ int loki_patch(const char* partition_label, const char* aboot_image, const char*
 
 	if (!target) {
 		for (ptr = aboot; ptr < aboot + st.st_size - 0x1000; ptr++) {
-			if (!memcmp(ptr, PATTERN6, 8)) {
+			if (!memcmp(ptr, PATTERN, 8)) {
 
-				aboot_base = ABOOT_BASE_LG;
 				target = (unsigned long)ptr - (unsigned long)aboot + aboot_base;
 				break;
 			}
